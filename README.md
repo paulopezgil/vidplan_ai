@@ -21,12 +21,30 @@ docker compose up --build
 - **Frontend UI:** http://localhost:8501
 - **Qdrant Dashboard:** http://localhost:6333/dashboard
 
-## Running Tests
+## Tech Stack
 
-```bash
-cd backend
-python -m pytest tests/ -v
-```
+- **FastAPI** — async backend
+- **Streamlit** — frontend UI
+- **Qdrant** — vector database with nested metadata filtering
+- **LangChain + OpenAI** — gpt-4o-mini for extraction, text-embedding-ada-002 for embeddings
+- **Docker Compose** — containerized deployment
+
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `OPENAI_API_KEY` | — | Required. OpenAI API key |
+| `QDRANT_HOST` | `qdrant` | Qdrant server hostname |
+| `QDRANT_PORT` | `6333` | Qdrant server port |
+| `API_URL` | `http://backend:8000` | Backend URL (frontend only) |
+
+## API Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/employees/upload` | Upload an employee profile for LLM extraction and indexing |
+| `POST` | `/query` | Natural-language talent search with metadata-filtered vector retrieval |
+| `GET` | `/health` | Health check |
 
 ## Local Development
 
@@ -47,27 +65,31 @@ cd frontend
 API_URL=http://localhost:8000 streamlit run app.py
 ```
 
-## API Endpoints
+## Running Tests
 
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/employees/upload` | Upload an employee profile for LLM extraction and indexing |
-| `POST` | `/query` | Natural-language talent search with metadata-filtered vector retrieval |
-| `GET` | `/health` | Health check |
+All tests live in `backend/tests/` and must be run from the `backend/` directory so that the `app` package is importable:
 
-## Tech Stack
+```bash
+cd backend
+python -m pytest tests/ -v
+```
 
-- **FastAPI** — async backend
-- **Streamlit** — frontend UI
-- **Qdrant** — vector database with nested metadata filtering
-- **LangChain + OpenAI** — gpt-4o-mini for extraction, text-embedding-ada-002 for embeddings
-- **Docker Compose** — containerized deployment
+Run a single test file:
 
-## Environment Variables
+```bash
+cd backend
+python -m pytest tests/test_parse_employee_profile.py -v
+```
 
-| Variable | Default | Description |
-|---|---|---|
-| `OPENAI_API_KEY` | — | Required. OpenAI API key |
-| `QDRANT_HOST` | `qdrant` | Qdrant server hostname |
-| `QDRANT_PORT` | `6333` | Qdrant server port |
-| `API_URL` | `http://backend:8000` | Backend URL (frontend only) |
+> **Note:** Do not run test files directly with `python3 tests/test_file.py` — this skips the path setup that `pytest` provides and will fail with `ModuleNotFoundError: No module named 'app'`.
+
+### Test Structure
+
+| File | What it covers |
+|---|---|
+| `tests/test_integration.py` | Full upload → search round-trip through the API (mocked LLM + Qdrant) |
+| `tests/test_parse_employee_profile.py` | LLM profile extraction logic |
+| `tests/test_parse_query.py` | LLM query parsing logic |
+| `tests/test_search_employees.py` | Qdrant search with metadata filtering |
+
+Tests mock external dependencies (OpenAI, Qdrant) so **no API keys or running services are needed**.
