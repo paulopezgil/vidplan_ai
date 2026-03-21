@@ -27,10 +27,10 @@ def _make_hit(id="abc-123", score=0.95, payload=None):
     return hit
 
 
-@patch("app.services.qdrant_service.search_employees.embeddings")
 @patch("app.services.qdrant_service.search_employees.qdrant")
-def test_builds_nested_skill_filter(mock_qdrant, mock_embeddings):
-    mock_embeddings.embed_query.return_value = FAKE_VECTOR
+@patch("app.services.qdrant_service.search_employees.get_embeddings")
+def test_builds_nested_skill_filter(mock_get_embeddings, mock_qdrant):
+    mock_get_embeddings.return_value.embed_query.return_value = FAKE_VECTOR
     mock_qdrant.search.return_value = [_make_hit()]
 
     parsed = ParsedQuery(
@@ -51,17 +51,13 @@ def test_builds_nested_skill_filter(mock_qdrant, mock_embeddings):
     assert results[0].score == 0.95
 
 
-@patch("app.services.qdrant_service.search_employees.embeddings")
 @patch("app.services.qdrant_service.search_employees.qdrant")
-def test_builds_department_and_grade_filters(mock_qdrant, mock_embeddings):
-    mock_embeddings.embed_query.return_value = FAKE_VECTOR
+@patch("app.services.qdrant_service.search_employees.get_embeddings")
+def test_builds_department_and_grade_filters(mock_get_embeddings, mock_qdrant):
+    mock_get_embeddings.return_value.embed_query.return_value = FAKE_VECTOR
     mock_qdrant.search.return_value = []
 
-    parsed = ParsedQuery(
-        department="Engineering",
-        grade="senior",
-        semantic_query="engineer",
-    )
+    parsed = ParsedQuery(department="Engineering", grade="senior", semantic_query="engineer")
     search_employees(parsed, "engineer", top_k=5)
 
     call_kwargs = mock_qdrant.search.call_args.kwargs
@@ -73,10 +69,10 @@ def test_builds_department_and_grade_filters(mock_qdrant, mock_embeddings):
     assert "grade" in field_keys
 
 
-@patch("app.services.qdrant_service.search_employees.embeddings")
 @patch("app.services.qdrant_service.search_employees.qdrant")
-def test_no_filter_when_empty_query(mock_qdrant, mock_embeddings):
-    mock_embeddings.embed_query.return_value = FAKE_VECTOR
+@patch("app.services.qdrant_service.search_employees.get_embeddings")
+def test_no_filter_when_empty_query(mock_get_embeddings, mock_qdrant):
+    mock_get_embeddings.return_value.embed_query.return_value = FAKE_VECTOR
     mock_qdrant.search.return_value = []
 
     parsed = ParsedQuery(semantic_query="anything")
@@ -87,39 +83,21 @@ def test_no_filter_when_empty_query(mock_qdrant, mock_embeddings):
     assert call_kwargs["limit"] == 10
 
 
-@patch("app.services.qdrant_service.search_employees.embeddings")
 @patch("app.services.qdrant_service.search_employees.qdrant")
-def test_maps_multiple_results(mock_qdrant, mock_embeddings):
-    mock_embeddings.embed_query.return_value = FAKE_VECTOR
+@patch("app.services.qdrant_service.search_employees.get_embeddings")
+def test_maps_multiple_results(mock_get_embeddings, mock_qdrant):
+    mock_get_embeddings.return_value.embed_query.return_value = FAKE_VECTOR
     mock_qdrant.search.return_value = [
-        _make_hit(
-            id="id-1",
-            score=0.9,
-            payload={
-                "name": "Bob",
-                "title": "Designer",
-                "bio": "UI/UX expert",
-                "skills": [],
-                "years_experience": 3,
-                "department": "Design",
-                "grade": "mid",
-                "location": "London",
-            },
-        ),
-        _make_hit(
-            id="id-2",
-            score=0.7,
-            payload={
-                "name": "Carol",
-                "title": "PM",
-                "bio": "Product management",
-                "skills": [],
-                "years_experience": 8,
-                "department": None,
-                "grade": None,
-                "location": None,
-            },
-        ),
+        _make_hit(id="id-1", score=0.9, payload={
+            "name": "Bob", "title": "Designer", "bio": "UI/UX expert",
+            "skills": [], "years_experience": 3,
+            "department": "Design", "grade": "mid", "location": "London",
+        }),
+        _make_hit(id="id-2", score=0.7, payload={
+            "name": "Carol", "title": "PM", "bio": "Product management",
+            "skills": [], "years_experience": 8,
+            "department": None, "grade": None, "location": None,
+        }),
     ]
 
     parsed = ParsedQuery(semantic_query="designer")

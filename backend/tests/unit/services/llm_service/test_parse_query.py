@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from app.schemas import ParsedQuery
 from app.services.llm_service.parse_query import parse_query
 
 
-def _mock_chain(data: dict) -> AsyncMock:
-    """Return a mock LangChain chain whose ainvoke returns JSON content."""
-    result = MagicMock()
-    result.content = json.dumps(data)
+def _mock_chain(result: ParsedQuery) -> AsyncMock:
+    """Return a mock LangChain chain whose ainvoke returns structured output."""
     chain = AsyncMock()
     chain.ainvoke = AsyncMock(return_value=result)
     return chain
@@ -19,17 +17,17 @@ def _mock_chain(data: dict) -> AsyncMock:
 
 @pytest.mark.asyncio
 async def test_parses_skill_filters():
-    llm_data = {
-        "skill_filters": [{"name": "python", "min_years": 3}],
-        "min_years": 5,
-        "department": None,
-        "grade": "senior",
-        "location": None,
-        "semantic_query": "senior python developer",
-    }
-    mock = _mock_chain(llm_data)
+    parsed = ParsedQuery(
+        skill_filters=[{"name": "python", "min_years": 3}],
+        min_years=5,
+        department=None,
+        grade="senior",
+        location=None,
+        semantic_query="senior python developer",
+    )
+    mock = _mock_chain(parsed)
 
-    with patch("app.services.llm_service.parse_query.QUERY_PROMPT") as mock_prompt:
+    with patch("app.services.llm_service.parse_query.parse_query_prompt") as mock_prompt:
         mock_prompt.__or__ = MagicMock(return_value=mock)
         result = await parse_query("Senior Python dev with 5+ years")
 
@@ -43,12 +41,10 @@ async def test_parses_skill_filters():
 
 @pytest.mark.asyncio
 async def test_falls_back_on_malformed_response():
-    bad_result = MagicMock()
-    bad_result.content = "not json"
     mock = AsyncMock()
-    mock.ainvoke = AsyncMock(return_value=bad_result)
+    mock.ainvoke = AsyncMock(side_effect=ValueError("bad response"))
 
-    with patch("app.services.llm_service.parse_query.QUERY_PROMPT") as mock_prompt:
+    with patch("app.services.llm_service.parse_query.parse_query_prompt") as mock_prompt:
         mock_prompt.__or__ = MagicMock(return_value=mock)
         result = await parse_query("find me a designer")
 
@@ -58,20 +54,20 @@ async def test_falls_back_on_malformed_response():
 
 @pytest.mark.asyncio
 async def test_parses_multiple_filters():
-    llm_data = {
-        "skill_filters": [
+    parsed = ParsedQuery(
+        skill_filters=[
             {"name": "react", "min_years": 2},
             {"name": "typescript", "min_years": None},
         ],
-        "min_years": None,
-        "department": "Frontend",
-        "grade": None,
-        "location": "London",
-        "semantic_query": "frontend developer with React and TypeScript",
-    }
-    mock = _mock_chain(llm_data)
+        min_years=None,
+        department="Frontend",
+        grade=None,
+        location="London",
+        semantic_query="frontend developer with React and TypeScript",
+    )
+    mock = _mock_chain(parsed)
 
-    with patch("app.services.llm_service.parse_query.QUERY_PROMPT") as mock_prompt:
+    with patch("app.services.llm_service.parse_query.parse_query_prompt") as mock_prompt:
         mock_prompt.__or__ = MagicMock(return_value=mock)
         result = await parse_query("Frontend React/TS dev in London")
 

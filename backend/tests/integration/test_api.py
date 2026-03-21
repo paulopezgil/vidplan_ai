@@ -1,10 +1,13 @@
 from __future__ import annotations
+
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from fastapi.testclient import TestClient
+
 from app.schemas import (
     EmployeeResult,
-    ParsedEmployeeProfile,
+    ParseEmployeeProfileAI,
     ParsedQuery,
     Skill,
     SkillFilter,
@@ -26,8 +29,7 @@ def client():
 
 def test_upload_and_search_round_trip(client):
     """Full upload → search flow through the API with mocked services."""
-    # ── Upload ──────────────────────────────────────────────────────────────
-    parsed_profile = ParsedEmployeeProfile(
+    parsed_profile = ParseEmployeeProfileAI(
         name="Alice Smith",
         title="Senior Python Developer",
         bio="10 years building Python backends.",
@@ -40,7 +42,7 @@ def test_upload_and_search_round_trip(client):
 
     with (
         patch(
-            "app.api.v1.endpoints.parse_employee_profile",
+            "app.api.v1.endpoints.parse_employee",
             new_callable=AsyncMock,
             return_value=parsed_profile,
         ),
@@ -67,7 +69,6 @@ def test_upload_and_search_round_trip(client):
     assert upload_data["parsed_profile"]["name"] == "Alice Smith"
     assert len(upload_data["parsed_profile"]["skills"]) == 1
 
-    # ── Search ──────────────────────────────────────────────────────────────
     mock_parsed_query = ParsedQuery(
         skill_filters=[SkillFilter(name="python", min_years=5)],
         semantic_query="senior python developer",

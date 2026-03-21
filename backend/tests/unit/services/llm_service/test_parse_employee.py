@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.schemas import EmployeeProfile
-from app.services.llm_service.parse_employee_profile import parse_employee_profile
+from app.schemas import EmployeeExtraction, EmployeeProfile
+from app.services.llm_service.parse_employee import parse_employee
 
 
-def _mock_chain(data: dict) -> AsyncMock:
-    """Return a mock LangChain chain whose ainvoke returns JSON content."""
-    result = MagicMock()
-    result.content = json.dumps(data)
+def _mock_chain(result: EmployeeExtraction) -> AsyncMock:
+    """Return a mock LangChain chain whose ainvoke returns structured output."""
     chain = AsyncMock()
     chain.ainvoke = AsyncMock(return_value=result)
     return chain
@@ -20,24 +17,24 @@ def _mock_chain(data: dict) -> AsyncMock:
 
 @pytest.mark.asyncio
 async def test_extracts_skills_and_experience():
-    llm_data = {
-        "skills": [
+    parsed = EmployeeExtraction(
+        skills=[
             {"name": "Python", "years_experience": 5, "description": "Backend"},
             {"name": "FastAPI", "years_experience": 2, "description": "REST APIs"},
         ],
-        "years_experience": 7,
-    }
-    mock = _mock_chain(llm_data)
+        years_experience=7,
+    )
+    mock = _mock_chain(parsed)
 
     with patch(
-        "app.services.llm_service.parse_employee_profile.EXTRACT_PROMPT"
+        "app.services.llm_service.parse_employee.parse_employee_prompt"
     ) as mock_prompt:
         mock_prompt.__or__ = MagicMock(return_value=mock)
 
         profile = EmployeeProfile(
             name="Alice", title="Senior Dev", bio="Experienced developer"
         )
-        result = await parse_employee_profile(profile)
+        result = await parse_employee(profile)
 
     assert result.name == "Alice"
     assert result.title == "Senior Dev"
@@ -51,18 +48,16 @@ async def test_extracts_skills_and_experience():
 
 @pytest.mark.asyncio
 async def test_handles_malformed_llm_response():
-    bad_result = MagicMock()
-    bad_result.content = "not valid json"
     mock = AsyncMock()
-    mock.ainvoke = AsyncMock(return_value=bad_result)
+    mock.ainvoke = AsyncMock(side_effect=ValueError("bad response"))
 
     with patch(
-        "app.services.llm_service.parse_employee_profile.EXTRACT_PROMPT"
+        "app.services.llm_service.parse_employee.parse_employee_prompt"
     ) as mock_prompt:
         mock_prompt.__or__ = MagicMock(return_value=mock)
 
         profile = EmployeeProfile(name="Bob", title="Dev", bio="Some bio")
-        result = await parse_employee_profile(profile)
+        result = await parse_employee(profile)
 
     assert result.name == "Bob"
     assert result.skills == []
@@ -71,11 +66,11 @@ async def test_handles_malformed_llm_response():
 
 @pytest.mark.asyncio
 async def test_preserves_optional_fields():
-    llm_data = {"skills": [], "years_experience": 3}
-    mock = _mock_chain(llm_data)
+    parsed = EmployeeExtraction(skills=[], years_experience=3)
+    mock = _mock_chain(parsed)
 
     with patch(
-        "app.services.llm_service.parse_employee_profile.EXTRACT_PROMPT"
+        "app.services.llm_service.parse_employee.parse_employee_prompt"
     ) as mock_prompt:
         mock_prompt.__or__ = MagicMock(return_value=mock)
 
@@ -87,7 +82,7 @@ async def test_preserves_optional_fields():
             location="NYC",
             grade="senior",
         )
-        result = await parse_employee_profile(profile)
+        result = await parse_employee(profile)
 
     assert result.department == "Engineering"
     assert result.location == "NYC"

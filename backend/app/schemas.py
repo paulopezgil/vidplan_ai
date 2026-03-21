@@ -49,3 +49,9 @@ class ParsedQuery(BaseModel):
     grade: str | None = Field(None, description="Grade filter")
     location: str | None = Field(None, description="Location filter")
     semantic_query: str = Field("", description="Rephrased query for embedding search")
+
+
+# Aliases used by application services
+EmployeeProfile = ParseEmployeeProfilePayload
+EmployeeExtraction = ParseEmployeeProfileAIMetadata
+ParsedEmployeeProfile = ParseEmployeeProfileAI
