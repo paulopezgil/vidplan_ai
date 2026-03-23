@@ -7,6 +7,10 @@ openai==2.26.0
 pydantic==2.12.5
 pydantic-settings==2.13.1
 python-multipart==0.0.22
+pymupdf==1.25.5
+pytesseract==0.3.13
+Pillow==11.1.0
+docx2txt==0.8
 
 # Testing
 pytest==9.0.2

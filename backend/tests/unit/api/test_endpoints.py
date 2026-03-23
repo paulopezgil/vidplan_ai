@@ -105,6 +105,62 @@ class TestQueryEmployees:
         assert resp.json() == []
 
 
+class TestUploadEmployeeFile:
+    def test_returns_id_and_parsed_profile(self, client):
+        parsed = ParseEmployeeProfileAI(
+            name="Alice Smith",
+            title="Senior Python Developer",
+            bio="Extracted from PDF.",
+            skills=[Skill(name="Python", years_experience=10, description="Backend")],
+            years_experience=10,
+        )
+        with (
+            patch("app.api.v1.endpoints.extract_text_from_upload", new_callable=AsyncMock, return_value="Extracted from PDF."),
+            patch("app.api.v1.endpoints.parse_employee", new_callable=AsyncMock, return_value=parsed),
+            patch("app.api.v1.endpoints.upsert_employee", return_value="file-uuid"),
+        ):
+            resp = client.post(
+                "/employees/upload-file",
+                data={"name": "Alice Smith", "title": "Senior Python Developer"},
+                files={"file": ("cv.pdf", b"%PDF-1.4", "application/pdf")},
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["id"] == "file-uuid"
+        assert data["parsed_profile"]["name"] == "Alice Smith"
+        assert data["message"] == "Employee profile ingested successfully."
+
+    def test_missing_name_returns_422(self, client):
+        resp = client.post(
+            "/employees/upload-file",
+            data={"title": "Dev"},
+            files={"file": ("cv.pdf", b"%PDF-1.4", "application/pdf")},
+        )
+        assert resp.status_code == 422
+
+    def test_missing_file_returns_422(self, client):
+        resp = client.post(
+            "/employees/upload-file",
+            data={"name": "Alice", "title": "Dev"},
+        )
+        assert resp.status_code == 422
+
+    def test_optional_fields_accepted(self, client):
+        parsed = ParseEmployeeProfileAI(name="Bob", title="Dev", bio="Bio", skills=[])
+        with (
+            patch("app.api.v1.endpoints.extract_text_from_upload", new_callable=AsyncMock, return_value="Bio"),
+            patch("app.api.v1.endpoints.parse_employee", new_callable=AsyncMock, return_value=parsed),
+            patch("app.api.v1.endpoints.upsert_employee", return_value="uuid-3"),
+        ):
+            resp = client.post(
+                "/employees/upload-file",
+                data={"name": "Bob", "title": "Dev", "department": "Eng", "location": "NYC", "grade": "senior"},
+                files={"file": ("cv.pdf", b"%PDF-1.4", "application/pdf")},
+            )
+        assert resp.status_code == 200
+
+
 class TestHealth:
     def test_health_check(self, client):
         resp = client.get("/health")

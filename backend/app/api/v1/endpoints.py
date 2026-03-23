@@ -1,9 +1,10 @@
 from __future__ import annotations
 from typing import Any
-from fastapi import APIRouter
+from fastapi import APIRouter, File, Form, UploadFile
 from app.schemas import EmployeeProfile, EmployeeResult, ParsedEmployeeProfile, QueryRequest
 from app.services.llm_service import parse_employee, parse_query
 from app.services.qdrant_service import upsert_employee, search_employees
+from app.services.file_service import extract_text_from_upload
 
 router = APIRouter()
 
@@ -11,6 +12,28 @@ router = APIRouter()
 @router.post("/employees/upload", response_model=dict[str, Any])
 async def upload_employee(profile: EmployeeProfile):
     """Ingest an employee profile: extract metadata via LLM, embed, and store."""
+    parsed = await parse_employee(profile)
+    point_id = upsert_employee(parsed)
+
+    return {
+        "id": point_id,
+        "parsed_profile": parsed.model_dump(),
+        "message": "Employee profile ingested successfully.",
+    }
+
+
+@router.post("/employees/upload-file", response_model=dict[str, Any])
+async def upload_employee_file(
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    title: str = Form(...),
+    department: str | None = Form(None),
+    location: str | None = Form(None),
+    grade: str | None = Form(None),
+):
+    """Ingest an employee profile from a file (PDF, DOCX, or image): extract text, extract metadata via LLM, embed, and store."""
+    bio = await extract_text_from_upload(file)
+    profile = EmployeeProfile(name=name, title=title, bio=bio, department=department, location=location, grade=grade)
     parsed = await parse_employee(profile)
     point_id = upsert_employee(parsed)
 

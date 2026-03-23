@@ -19,7 +19,10 @@ ENV/
 *.swp
 *.swo
 *~
+
+# Coding agents secret files
 .github/
+.claude/
 
 # OS
 .DS_Store
