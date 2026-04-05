@@ -11,9 +11,8 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr
     openai_model: str = "gpt-4o-mini"
 
-    # Qdrant
-    qdrant_host: str = "qdrant"
-    qdrant_port: int = 6333
+    # Database
+    database_url: str = "postgresql://admin:password@localhost:5432/vidplan"
     collection_name: str = "employees"
     embed_dim: int = 1536  # text-embedding-ada-002
 
