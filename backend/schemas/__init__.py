@@ -1,11 +1,11 @@
-from .project import ProjectBase, ProjectCreate, ProjectUpdate, ProjectResponse
-from .message import MessageBase, MessageCreate, MessageResponse
-from .script import ScriptBase, ScriptCreate, ScriptUpdate, ScriptResponse
-from .social_media import SocialMediaBase, SocialMediaCreate, SocialMediaUpdate, SocialMediaResponse
+from .project import ProjectUpdate, ProjectResponse, ProjectListResponse
+from .message import MessageInput, MessageResponse
+from .script import ScriptUpdate, ScriptResponse
+from .social_media import SocialMediaUpdate, SocialMediaResponse
 
 __all__ = [
-    "ProjectBase", "ProjectCreate", "ProjectUpdate", "ProjectResponse",
-    "MessageBase", "MessageCreate", "MessageResponse",
-    "ScriptBase", "ScriptCreate", "ScriptUpdate", "ScriptResponse",
-    "SocialMediaBase", "SocialMediaCreate", "SocialMediaUpdate", "SocialMediaResponse",
+    "ProjectUpdate", "ProjectResponse", "ProjectListResponse",
+    "MessageInput", "MessageResponse",
+    "ScriptUpdate", "ScriptResponse",
+    "SocialMediaUpdate", "SocialMediaResponse",
 ]

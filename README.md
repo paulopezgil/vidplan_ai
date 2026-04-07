@@ -37,18 +37,45 @@ The core intelligence is powered by **Pydantic AI**, which enforces structured i
 - **Conversation Service** (`backend/services/conversation/`): Orchestrates message flow and AI responses
 - **CRUD Operations** (`backend/services/crud/`): Database operations following repository pattern
 
+## 🐳 Docker Deployment
+
+VidPlan AI is fully containerized with Docker Compose for easy deployment:
+
+```bash
+# Build and start all services
+docker compose up --build
+
+# Start in detached mode
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
+```
+
+**Services:**
+- **PostgreSQL + PGVector** (`db:5432`): Database with vector extension
+- **FastAPI Backend** (`backend:8000`): REST API and AI agent
+- **Streamlit Frontend** (`frontend:8501`): Web interface
+
+**Multi-Provider AI Support:** Configure your preferred LLM provider via environment variables (OpenAI, DeepSeek, Anthropic, Google, Mistral, Groq, Cohere, etc.)
+
 ## ✨ Key Features
 
 - **Structured AI Agent:** Clear separation between idea generation (brainstorming) and content generation (execution).
 - **Hybrid Data Storage:** Combines the reliability of Postgres for structured data with the intelligence of a Vector DB for semantic retrieval.
 - **Multi-Tab GUI:** An organized, intuitive interface for seamless project management and content creation.
 - **Full Traceability:** Complete history of chat interactions and generated content versions.
+- **Containerized Deployment:** Easy setup with Docker Compose.
 
 ## 🛠️ Tech Stack
 
 - **Backend:** FastAPI, SQLAlchemy (Postgres), PGVector (or external Vector DB like Qdrant)
 - **Frontend:** Streamlit
-- **AI/LLM:** OpenAI API, Pydantic AI
+- **AI/LLM:** Pydantic AI with multi-provider support (OpenAI, DeepSeek, Anthropic, Google Gemini, Mistral, Groq, Cohere, and more)
+- **Containerization:** Docker, Docker Compose
 
 ## 📚 Documentation
 

@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy import text
 
 from backend.routers import projects, messages, scripts, social_media
 from backend.core.database import engine
@@ -9,6 +10,13 @@ from backend.models import Base
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    # Enable PGVector extension first
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+    except Exception as e:
+        print(f"Warning: PGVector extension creation failed: {e}")
+    
     # Create database tables (in production, use migrations instead)
     try:
         async with engine.begin() as conn:
