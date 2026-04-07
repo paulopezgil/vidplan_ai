@@ -32,7 +32,10 @@ The backend is built for performance and modularity using **FastAPI**. It implem
 - **Vector Database (PGVector):** Stores project embeddings to enable semantic search and Retrieval-Augmented Generation (RAG) workflows.
 
 ### AI Agent (Pydantic AI)
-The core intelligence is powered by **Pydantic AI**, which enforces structured intent outputs. It utilizes function calling to safely save documents, update project statuses, and generate content without direct database access.
+The core intelligence is powered by **Pydantic AI**, which enforces structured intent outputs. It utilizes function calling to safely save documents, update project statuses, and generate content without direct database access. The agent is organized into modular components:
+- **Agent Core** (`backend/services/agent/`): Main agent logic with system prompts and tools
+- **Conversation Service** (`backend/services/conversation/`): Orchestrates message flow and AI responses
+- **CRUD Operations** (`backend/services/crud/`): Database operations following repository pattern
 
 ## ✨ Key Features
 

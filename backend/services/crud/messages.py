@@ -13,6 +13,28 @@ async def get_project_messages(db: AsyncSession, project_id: UUID) -> List[Messa
     )
     return list(result.scalars().all())
 
+async def get_last_project_messages(db: AsyncSession, project_id: UUID, limit: int = 10) -> List[Message]:
+    """
+    Returns the last N messages for a project, ordered by creation date.
+    Defaults to last 10 messages.
+    """
+    result = await db.execute(
+        select(Message)
+        .where(Message.project_id == project_id)
+        .order_by(Message.created_at.desc())
+        .limit(limit)
+    )
+    return list(reversed(result.scalars().all()))
+
+async def get_last_project_message(db: AsyncSession, project_id: UUID) -> Optional[Message]:
+    result = await db.execute(
+        select(Message)
+        .where(Message.project_id == project_id)
+        .order_by(Message.created_at.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
 async def get_message(db: AsyncSession, message_id: UUID) -> Optional[Message]:
     result = await db.execute(select(Message).where(Message.id == message_id))
     return result.scalar_one_or_none()

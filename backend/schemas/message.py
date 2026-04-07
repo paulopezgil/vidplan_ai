@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict
 from uuid import UUID
 from datetime import datetime
 
-class ChatRequest(BaseModel):
+class MessageInput(BaseModel):
     content: str
 
 class MessageResponse(BaseModel):
