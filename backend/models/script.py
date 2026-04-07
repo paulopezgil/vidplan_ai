@@ -27,4 +27,4 @@ class Script(Base):
     )
 
     # Relationships
-    project: Mapped["Project"] = relationship("Project", back_populates="scripts")
+    project: Mapped["Project"] = relationship("Project", back_populates="script")

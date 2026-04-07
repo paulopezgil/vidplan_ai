@@ -3,22 +3,22 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from backend.routers import projects, messages, scripts, social_media
-from backend.services.pgvector_service.client import db_client
-from backend.services.pgvector_service.ensure_table import ensure_table
+from backend.core.database import engine
+from backend.models import Base
 
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
-    # Depending on current state, the db_client / ensure_table
-    # might need restructuring later to fit the asyncpg engine.
+    # Create database tables (in production, use migrations instead)
     try:
-        await db_client.connect()
-        await ensure_table()
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
     except Exception as e:
-        print(f"Warning: db_client connection failed during startup: {e}")
+        print(f"Warning: Database table creation failed: {e}")
     yield
+    # Cleanup if needed
     try:
-        await db_client.close()
+        await engine.dispose()
     except Exception:
         pass
 

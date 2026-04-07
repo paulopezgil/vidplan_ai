@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic_ai import Agent, RunContext
 
+from backend.core.config import settings
 from backend.services.agent.prompts import SYSTEM_PROMPT_STATIC, build_dynamic_context
 from backend.services.agent.tools import project
 from backend.services.agent.tools import script
@@ -20,7 +21,7 @@ class ProjectAgentDeps:
 
 # Initialize the Pydantic AI agent
 vidplan_agent = Agent(
-    "openai:gpt-4o-mini",
+    settings.ai_model,
     deps_type=ProjectAgentDeps,
     retries=2,
     system_prompt=SYSTEM_PROMPT_STATIC
