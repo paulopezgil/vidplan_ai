@@ -6,6 +6,7 @@ from sqlalchemy import text
 from backend.routers import projects, messages, scripts, social_media
 from backend.core.database import engine
 from backend.models import Base
+from backend.exceptions.handlers import get_exception_handlers
 
 
 @asynccontextmanager
@@ -38,3 +39,7 @@ app.include_router(projects.router)
 app.include_router(messages.router)
 app.include_router(scripts.router)
 app.include_router(social_media.router)
+
+# Exception handlers
+for exc_type, handler in get_exception_handlers().items():
+    app.add_exception_handler(exc_type, handler)
