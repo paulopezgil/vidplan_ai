@@ -1,14 +1,15 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
 import logging
 
 from backend.routers import projects, messages, scripts, social_media
 from backend.core.database import engine
 from backend.models import Base
-from backend.exceptions import VidPlanError, handle_vidplan_error
-
+from backend.exceptions import VidPlanError, DatabaseError, ValidationError, handle_vidplan_error
 
 
 # Set up logging
@@ -33,7 +34,19 @@ app.include_router(scripts.router)
 app.include_router(social_media.router)
 
 
-# Global Exception Handler
+# Global Exception Handler (only for VidPlanError and its subclasses)
 @app.exception_handler(VidPlanError)
 async def global_exception_handler(request: Request, exc: VidPlanError) -> JSONResponse:
     return await handle_vidplan_error(exc)
+
+
+# SQLAlchemy Exception Handler (to convert db provider-specific errors to VidPlanErrors)
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
+    return await handle_vidplan_error(DatabaseError(str(exc)))
+
+
+# Validation Error Handler (for Pydantic validation errors)
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    return await handle_vidplan_error(ValidationError(str(exc)))
