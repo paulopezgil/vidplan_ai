@@ -32,5 +32,5 @@ async def update_project(project_id: UUID, project_in: ProjectUpdate, db: AsyncS
     # 1. Fetch the existing project
     project = await crud_service.projects.get_project(db, project_id)
 
-    # 2. Update the project with new data
+    # 2. Update the project with new data and return it
     return await crud_service.projects.update_project(db, project, project_in)

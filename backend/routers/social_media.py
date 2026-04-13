@@ -27,5 +27,5 @@ async def update_project_social_media(project_id: UUID, sm_in: SocialMediaUpdate
     # 1. Fetch the existing social media content
     social_media = await crud_service.social_media.get_project_social_media(db, project_id)
 
-    # 2. If social media content doesn't exist, raise 404
+    # 2. Update the social media content and return it
     return await crud_service.social_media.update_social_media(db, social_media, sm_in)

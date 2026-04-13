@@ -27,7 +27,6 @@ vidplan_agent = Agent(
     deps_type=ProjectAgentDeps,
     retries=2,
     system_prompt=SYSTEM_PROMPT_STATIC,
-    defer_model_check=True  # Don't validate API key until first run
 )
 
 

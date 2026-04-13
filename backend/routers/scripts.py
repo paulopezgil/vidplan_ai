@@ -28,5 +28,5 @@ async def update_project_script(project_id: UUID, script_in: ScriptUpdate, db: A
     # 1. Fetch the existing script
     script = await crud_service.scripts.get_project_script(db, project_id)
 
-    # 2. If script doesn't exist, raise 404
+    # 2. Update the script and return it
     return await crud_service.scripts.update_script(db, script, script_in)

@@ -1,6 +1,6 @@
 from typing import List
 from backend.models.message import Message
-from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart
+from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, UserPromptPart, TextPart
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ def build_message_history(db_messages: List[Message]) -> list[ModelMessage]:
             logger.warning(f"Skipping message ID {msg.id} due to missing role")
             continue
         if msg.role == "user":
-            history.append(ModelRequest(content=msg.content))
+            history.append(ModelRequest(parts=[UserPromptPart(content=msg.content)]))
         elif msg.role == "assistant":
-            history.append(ModelResponse(content=msg.content))
+            history.append(ModelResponse(parts=[TextPart(content=msg.content)]))
     return history

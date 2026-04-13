@@ -33,5 +33,5 @@ async def update_last_message(project_id: UUID, request: MessageInput, db: Async
     # 1. Delete last exchange (last user + assistant messages)
     await conversation_service.delete_last_exchange(db, project_id)
     
-    # 2. Create new exchange with updated content
+    # 2. Create new exchange with updated content and return the new AI response
     return await conversation_service.get_agent_response(db, project_id, request.content)
