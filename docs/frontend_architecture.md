@@ -1,177 +1,623 @@
-# Frontend Architecture
+# Frontend Architecture - VidPlan AI
 
-## Technology Choice: Streamlit
+## Overview
 
-**Decision**: Use Streamlit instead of React/Next.js for the frontend.
-**Rationale**:
-- **Rapid prototyping**: Streamlit enables fast iteration on AI application interfaces
-- **Python consistency**: Same language as backend reduces context switching
-- **Built-in state management**: Session state handles UI state naturally
-- **Deployment simplicity**: Single command deployment to Streamlit Cloud
-**Trade-off**: Less fine-grained control over UI compared to React, but sufficient for this productivity-focused application.
+The VidPlan AI frontend is a single-page React application that serves as the user interface for an AI-powered content creation workspace. It provides project management, AI-driven chat interactions, script editing, and social media content generation capabilities.
 
-## UI Structure
+The primary goal is to give content creators a unified workspace where they can manage projects, collaborate with an AI assistant, and generate content for multiple platforms—all driven by a FastAPI backend.
 
-### Layout Components
+---
+
+## Tech Stack Explanation
+
+### React
+
+React is the industry-standard choice for building user interfaces. Its component-based architecture naturally maps to our UI needs (sidebar, tabs, chat messages). Functional components with hooks keep the code predictable and easy to read.
+
+**Why React**: Every professional frontend job expects React experience. It's well-documented, has a massive ecosystem, and our constraints (no Redux, plain CSS) keep it simple.
+
+### TypeScript
+
+TypeScript adds compile-time type checking that catches bugs before runtime. For a beginner developer, this is invaluable—it provides autocomplete and explicit error messages rather than silent failures.
+
+**Why TypeScript**: The backend already uses Pydantic (strict typing). Using TypeScript creates consistency. A beginner can see exactly what data shapes look like and what API responses should contain.
+
+### Vite
+
+Vite is a modern build tool that offers instant server start and lightning-fast HMR (Hot Module Replacement). It's the standard for React projects today and requires almost no configuration.
+
+**Why Vite**: It works out of the box. No webpack configuration nightmares. The dev experience is fast, which matters for productivity.
+
+### fetch
+
+The native browser Fetch API handles HTTP requests. No Axios, no React Query, no TanStack Query. Just clean, standard JavaScript.
+
+**Why fetch**: For our scale, adding a library is overengineering. The backend has four simple endpoints. fetch does the job with zero dependencies.
+
+### CSS
+
+Plain CSS with component-level files. No Tailwind, no Bootstrap, no UI framework.
+
+**Why plain CSS**: Beginners must understand CSS fundamentals. Tailwind hides too much. Learning plain CSS builds lasting skills. Our app is simple enough that CSS won't become unmaintainable.
+
+---
+
+## High-Level Architecture
+
+The application follows a standard SPA (Single-Page Application) pattern:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    VidPlan AI Header                    │
-├──────────────┬──────────────────────────────────────────┤
-│              │                                          │
-│   Left       │             Right Main Panel             │
-│   Sidebar    │                                          │
-│              │  ┌────────────────────────────────────┐  │
-│   • Create   │  │         Tab Navigation             │  │
-│     Project  │  ├────────────────────────────────────┤  │
-│              │  │                                    |  │
-│   • Project  │  │         Tab Content Area           |  │
-│     List     │  │   (Project/Chat/Script/Social)     |  │
-│              │  │                                    |  │
-│              │  └────────────────────────────────────┘  │
-└──────────────┴──────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                         App Container                           │
+├─────────────────┬───────────────────────────────────────────────┤
+│                 │                                               │
+│   Left          │            Right Main Panel                   │
+│   Sidebar       │                                               │
+│                 │  ┌─────┬─────┬─────┬─────┐  (Tabs)            │
+│   • Project     │  │Project│Chat │Script│Social │              │
+│     List        │  └──┬──┴──┬──┴──┬──┴──┬──┘                   │
+│                 │     │     │     │     │                       │
+│   • Create      │     ▼     ▼     ▼     ▼                       │
+│     New         │   [Tab Content Area]                          │
+│                 │   (Dynamic based on active tab)               │
+└─────────────────┴───────────────────────────────────────────────┘
 ```
 
-### 1. Left Sidebar (`frontend/components/sidebar.py`)
-- **Project List**: Fetches and displays all projects from `/api/projects`
-- **Selection State**: Tracks currently selected project ID in `st.session_state`
-- **Create Project Button**: Triggers API call to create new project
-- **Auto-refresh**: List updates when new project is created
+### Core Principles
 
-### 2. Right Main Panel (`frontend/app.py` main content area)
-- **Tab Navigation**: Streamlit `st.tabs()` component with four fixed tabs
-- **Content Area**: Dynamic content based on selected tab and project
+1. **Single source of truth**: The backend database is the authoritative data store. The frontend fetches data and displays it. No local caching strategies.
 
-## Tab Implementations
+2. **Sidebar + Tab system**: The left sidebar handles project selection. The right panel contains four tabs that switch views. Only one tab visible at a time.
 
-### Project Tab (`frontend/tabs/project_tab.py`)
-- **Layout**: Vertical stack of form fields
-- **Fields**: Title (text input), Description (text area), Tags (multi-select)
-- **Data Binding**: Two-way binding with `projects` table
-- **Save Mechanism**: Auto-save on blur or explicit save button
+3. **Chat as control surface**: The Chat tab is where users interact with the AI. The AI can read/write to other tabs (scripts, social media) via backend function calls. The chat is the "control center."
 
-### Chat Tab (`frontend/tabs/chat_tab.py`)
-- **Message Display**: Chronological list of user/assistant messages
-- **Input Area**: Text input with send button
-- **API Integration**: 
-  - `POST /api/projects/{id}/messages` for new messages
-  - `PUT /api/projects/{id}/messages/last` for regeneration
-- **Real-time Updates**: Polling or WebSocket for new AI responses
+---
 
-### Script Tab (`frontend/tabs/script_tab.py`)
-- **Editor Interface**: Large text area with syntax highlighting
-- **Version History**: Display previous versions (future enhancement)
-- **Export Options**: Copy to clipboard, download as text file
+## Folder Structure
 
-### Social Network Tab (`frontend/tabs/social_tab.py`)
-- **Platform Sections**: Collapsible sections for each platform (YouTube, Instagram, etc.)
-- **Platform-specific UI**: Character counters, hashtag suggestions
-- **Batch Operations**: Copy all, regenerate all
+Keep it flat. No deep nesting. Each folder has one clear purpose.
 
-## State Management
-
-### Session State (`st.session_state`)
-```python
-# Core application state
-st.session_state.update({
-    "selected_project_id": None,  # Currently selected project
-    "projects": [],               # Cached project list
-    "messages": {},               # Project ID -> message list
-    "scripts": {},                # Project ID -> script content
-    "social_media": {},           # Project ID -> social media content
-})
+```
+src/
+├── api/
+│   ├── client.ts          # Base fetch wrapper with error handling
+│   ├── projects.ts        # Project CRUD operations
+│   ├── messages.ts        # Chat messages (send, fetch history)
+│   ├── script.ts          # Script get/update
+│   └── social.ts          # Social media get/update
+│
+├── components/
+│   ├── Sidebar.tsx        # Project list + create button
+│   ├── Tabs.tsx           # Tab navigation component
+│   ├── Chat.tsx           # Chat message list + input
+│   ├── Editor.tsx         # Reusable textarea for scripts/social
+│   └── Layout.tsx        # Sidebar + main panel wrapper
+│
+├── pages/
+│   └── App.tsx            # Main application component (routes)
+│
+├── styles/
+│   ├── global.css         # Reset, base typography, variables
+│   ├── Layout.css         # Sidebar + panel layout
+│   ├── Sidebar.css        # Project list styling
+│   ├── Tabs.css           # Tab buttons styling
+│   ├── Chat.css           # Chat messages + input
+│   └── Editor.css         # Textarea styling
+│
+├── types/
+│   └── index.ts           # TypeScript interfaces for all API responses
+│
+├── main.tsx               # React entry point
+└── App.tsx                # Root component (single page, no routing needed)
 ```
 
-### Data Flow Pattern
-1. **Project Selection**: User clicks project in sidebar → `selected_project_id` updated
-2. **Tab Navigation**: User switches tabs → fetch relevant data for current project
-3. **Data Editing**: User modifies content → API call to update backend
-4. **State Sync**: Successful API response → update local session state
+**Why this structure**:
 
-## API Integration Layer
+- `api/` groups all HTTP calls in one place—easy to find when debugging
+- `components/` contains reusable UI pieces
+- `pages/` is minimal because this is a single-view app (not a multi-page site)
+- `styles/` is flat with one CSS file per major component
+- `types/` centralizes all TypeScript interfaces
 
-### HTTP Client (`frontend/api/client.py`)
-- **Base URL Configuration**: Environment-based API endpoint
-- **Error Handling**: Graceful degradation on network errors
-- **Authentication**: API key or session-based auth (future)
-- **Response Caching**: In-memory cache to reduce API calls
+---
 
-### Data Synchronization
-- **Optimistic Updates**: UI updates immediately, API call in background
-- **Error Recovery**: Retry logic with exponential backoff
-- **Conflict Resolution**: Last-write-wins with user notification
+## State Management Strategy
 
-### API Endpoint Mapping
+Keep state minimal. Only two pieces of global state exist.
 
-| UI Component | Backend Endpoint | Method | Request Body | Response |
-|--------------|------------------|--------|--------------|----------|
-| Sidebar - Project List | `/api/projects` | GET | — | List[Project] |
-| Sidebar - Create Project | `/api/projects` | POST | `{"title": "New Project"}` | Project |
-| Project Tab - Title | `/api/projects/{id}` | PUT | `{"title": "..."}` | Project |
-| Project Tab - Description | `/api/projects/{id}` | PUT | `{"description": "..."}` | Project |
-| Chat Tab - Send Message | `/api/projects/{id}/messages` | POST | `{"content": "..."}` | Message |
-| Chat Tab - Edit & Regenerate | `/api/projects/{id}/messages/last` | PUT | `{"content": "..."}` | Message |
-| Chat Tab - Get History | `/api/projects/{id}/messages` | GET | — | List[Message] |
-| Script Tab - Content | `/api/projects/{id}/script` | GET | — | Script |
-| Script Tab - Update | `/api/projects/{id}/script` | PUT | `{"content": "..."}` | Script |
-| Social Media Tab - Get | `/api/projects/{id}/social-media` | GET | — | SocialMedia |
-| Social Media Tab - Update | `/api/projects/{id}/social-media` | PUT | `{...fields}` | SocialMedia |
+### Core State (React Context)
 
+```typescript
+// types/index.ts
+interface AppState {
+  selectedProjectId: number | null;
+  activeTab: 'project' | 'chat' | 'script' | 'social';
+}
 
-## User Experience Patterns
+// Use a simple Context for these two values
+const AppContext = createContext<{
+  state: AppState;
+  setState: React.Dispatch<SetStateAction<AppState>>;
+}>(null);
+```
 
-### 1. Progressive Disclosure
-- Simple interface for new users
-- Advanced controls available via expanders
-- Platform-specific options hidden by default
+### Why Only This?
 
-### 2. Responsive Feedback
-- Loading spinners during API calls
-- Success/error toast notifications
-- Auto-save indicators
+1. **selectedProjectId**: Needed everywhere—sidebar shows it, tabs fetch data for it, chat messages belong to it. Must be global.
 
-### 3. Keyboard Shortcuts
-- `Ctrl+Enter` to send message
-- `Tab` navigation between fields
-- `Esc` to cancel edits
+2. **activeTab**: Controls which view renders. Must be global to persist when switching projects.
 
-## Performance Considerations
+### Everything Else Is Local
 
-### 1. Data Fetching Strategy
-- **Lazy Loading**: Only fetch data when tab is activated
-- **Polling Interval**: 5-second refresh for chat updates
-- **Cache Invalidation**: Clear cache on explicit user actions
+- Chat messages: Fetched in `Chat.tsx`, stored in local `useState`
+- Script content: Fetched in `Editor.tsx` (script mode), stored locally
+- Social media content: Fetched in `Editor.tsx` (social mode), stored locally
 
-### 2. UI Optimization
-- **Virtual Scrolling**: For long chat histories
-- **Debounced Input**: Auto-save after 1 second of inactivity
-- **Component Memoization**: Prevent unnecessary re-renders
+### No Global Stores
 
-## Testing Strategy
+No Redux. No Zustand. No Context with more than these two values. If a component needs data, it either:
+- Gets it from the two global values
+- Fetches it directly from the API
+- Receives it via props from a parent
 
-### 1. Unit Tests
-- **Component Tests**: Isolated tab component testing
-- **API Client Tests**: Mock HTTP responses
-- **State Management Tests**: Session state transitions
+---
 
-### 2. Integration Tests
-- **End-to-End Workflow**: Create project → chat → generate script
-- **Error Scenarios**: Network failures, invalid data
-- **Cross-tab Synchronization**: Data consistency across tabs
+## Data Flow
 
-### 3. UI Tests
-- **Streamlit Testing**: Using `st-test` framework
-- **Visual Regression**: Screenshot comparison for UI changes
-- **Accessibility**: Screen reader compatibility checks
+### 1. Project Selection Flow
 
-## Deployment Considerations
+```
+User clicks project in sidebar
+        │
+        ▼
+setSelectedProjectId(project.id)
+        │
+        ▼
+Sidebar highlights selected project
+        │
+        ▼
+All tabs now display/fetch data for this project
+```
 
-### Streamlit Cloud
-- **Automatic Deployment**: Git push triggers redeploy
-- **Scaling**: Streamlit handles concurrent users
-- **Secrets Management**: Environment variables for API keys
+### 2. Tab Switching Flow
 
-### Custom Deployment
-- **Docker Container**: Included in project's docker-compose
-- **Reverse Proxy**: Nginx for SSL termination
-- **Health Checks**: `/health` endpoint for monitoring
+```
+User clicks tab button (Project/Chat/Script/Social)
+        │
+        ▼
+setActiveTab(tabName)
+        │
+        ▼
+Component for that tab renders
+        │
+        ▼
+useEffect triggers: fetch data for selectedProjectId
+        │
+        ▼
+Display fetched data in UI
+```
+
+### 3. Chat Message Flow
+
+```
+User types message → presses Enter
+        │
+        ▼
+POST /api/projects/{id}/messages with { content: "..." }
+        │
+        ▼
+Backend invokes AI agent
+        │
+        ▼
+Backend returns AI response (Message object)
+        │
+        ▼
+Chat component appends message to local state
+        │
+        ▼
+If AI wrote to script/social: UI prompts to refresh those tabs
+```
+
+### 4. UI Update After Backend Changes
+
+```
+User edits script → clicks Save
+        │
+        ▼
+PUT /api/projects/{id}/script with { content: "..." }
+        │
+        ▼
+Backend updates database → returns 200 OK
+        │
+        ▼
+UI shows "Saved" confirmation
+        │
+        ▼
+No complex state sync needed—backend is source of truth
+```
+
+---
+
+## API Layer Design
+
+### api/client.ts (Base Wrapper)
+
+```typescript
+const API_BASE = '/api';
+
+async function fetchApi<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+```
+
+### api/projects.ts
+
+```typescript
+import { fetchApi } from './client';
+
+export interface Project {
+  id: number;
+  title: string;
+  description: string;
+  created_at: string;
+}
+
+export async function getProjects(): Promise<Project[]> {
+  return fetchApi<Project[]>('/projects');
+}
+
+export async function createProject(title: string): Promise<Project> {
+  return fetchApi<Project[]>('/projects', {
+    method: 'POST',
+    body: JSON.stringify({ title }),
+  }).then(res => res[0]); // API returns array, take first item
+}
+
+export async function updateProject(id: number, data: Partial<Project>): Promise<Project> {
+  return fetchApi<Project>(`/projects/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+```
+
+### api/messages.ts
+
+```typescript
+import { fetchApi } from './client';
+
+export interface Message {
+  id: number;
+  project_id: number;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+}
+
+export async function getMessages(projectId: number): Promise<Message[]> {
+  return fetchApi<Message[]>(`/projects/${projectId}/messages`);
+}
+
+export async function sendMessage(projectId: number, content: string): Promise<Message> {
+  return fetchApi<Message>(`/projects/${projectId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+}
+```
+
+### api/script.ts
+
+```typescript
+import { fetchApi } from './client';
+
+export interface Script {
+  id: number;
+  project_id: number;
+  content: string;
+}
+
+export async function getScript(projectId: number): Promise<Script> {
+  return fetchApi<Script>(`/projects/${projectId}/script`);
+}
+
+export async function updateScript(projectId: number, content: string): Promise<Script> {
+  return fetchApi<Script>(`/projects/${projectId}/script`, {
+    method: 'PUT',
+    body: JSON.stringify({ content }),
+  });
+}
+```
+
+### api/social.ts
+
+```typescript
+import { fetchApi } from './client';
+
+export interface SocialMedia {
+  id: number;
+  project_id: number;
+  youtube: string;
+  instagram: string;
+  twitter: string;
+}
+
+export async function getSocialMedia(projectId: number): Promise<SocialMedia> {
+  return fetchApi<SocialMedia>(`/projects/${projectId}/social-media`);
+}
+
+export async function updateSocialMedia(projectId: number, data: Partial<SocialMedia>): Promise<SocialMedia> {
+  return fetchApi<SocialMedia>(`/projects/${projectId}/social-media`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+```
+
+---
+
+## Component Architecture
+
+### Layout.tsx
+
+```typescript
+// Wraps sidebar + main panel
+// Provides AppContext (selectedProjectId, activeTab)
+// CSS: flexbox, sidebar fixed width, main panel grows
+```
+
+### Sidebar.tsx
+
+```typescript
+// Props: none (consumes AppContext)
+// State: local `projects` array (fetched on mount)
+// - Fetches all projects on mount
+// - Renders list with click handlers to setSelectedProjectId
+// - "Create Project" button at bottom
+```
+
+### Tabs.tsx
+
+```typescript
+// Props: none (consumes AppContext)
+// Renders 4 buttons: Project | Chat | Script | Social
+// Active tab highlighted based on activeTab state
+// Clicking sets activeTab
+```
+
+### Chat.tsx
+
+```typescript
+// Props: projectId (from AppContext)
+// State: local `messages` array, `input` string, `isLoading` boolean
+// - Fetches messages when projectId changes
+// - Renders message list (user right, assistant left)
+// - Input + Send button sends to API
+// - Appends response to local messages
+```
+
+### Editor.tsx (Reusable)
+
+```typescript
+// Props: 
+//   - mode: 'script' | 'social'
+//   - projectId: number
+// State: local `content` string, `isSaving` boolean
+// - Fetches existing content on mount
+// - Textarea with content
+// - Save button triggers PUT to appropriate endpoint
+// - Social mode shows separate fields for each platform
+```
+
+---
+
+## Styling Approach
+
+### Global Styles (global.css)
+
+```css
+:root {
+  --sidebar-width: 250px;
+  --primary-color: #2563eb;
+  --text-color: #1f2937;
+  --bg-color: #ffffff;
+  --border-color: #e5e7eb;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-color);
+  background: var(--bg-color);
+}
+```
+
+### Component CSS Files
+
+Each component in `components/` has a matching file in `styles/`:
+
+- `Sidebar.css` — project list styling, hover states
+- `Tabs.css` — tab buttons, active indicator
+- `Chat.css` — message bubbles, input field, send button
+- `Editor.css` — textarea sizing, labels
+- `Layout.css` — flex container, sidebar/main split
+
+### Layout Approach
+
+Use CSS Flexbox for the main layout:
+
+```css
+.app-layout {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+}
+
+.main-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+```
+
+---
+
+## Build Strategy (3-Day Plan)
+
+### Day 1: Project Setup + Layout
+
+**Morning**:
+- Initialize Vite + React + TypeScript project
+- Install dependencies (none needed beyond React)
+- Create folder structure
+
+**Afternoon**:
+- Build `Layout.tsx` with sidebar + main panel
+- Create `global.css` with base styles
+- Implement `Sidebar.tsx` with static project list (mock data initially)
+- Verify layout renders correctly
+
+**Deliverable**: Empty shell app with working sidebar and panel layout.
+
+### Day 2: Tabs + API Integration
+
+**Morning**:
+- Implement `Tabs.tsx` with tab switching logic
+- Add `AppContext` for global state (selectedProjectId, activeTab)
+
+**Afternoon**:
+- Build `api/client.ts` and endpoint files
+- Connect `Sidebar.tsx` to real API (getProjects, createProject)
+- Implement project selection (click project → update context)
+- Verify data loads when project selected
+
+**Deliverable**: Working project list, tab navigation, project switching.
+
+### Day 3: Chat + Editors + Polish
+
+**Morning**:
+- Build `Chat.tsx` with message display and input
+- Connect to `sendMessage` API
+- Handle loading state during API calls
+
+**Afternoon**:
+- Build `Editor.tsx` for Script tab
+- Build `Editor.tsx` for Social Media tab (with platform fields)
+- Add save buttons and API calls
+- Basic styling pass (colors, spacing, buttons)
+- Test the full user flow: create project → chat → save script
+
+**Deliverable**: Fully functional app with all four tabs working.
+
+---
+
+## Anti-Patterns to Avoid
+
+### 1. Overusing Global State
+
+Don't put everything in Context. Only `selectedProjectId` and `activeTab` need to be global. Everything else should be local to the component that uses it.
+
+**Bad**: Storing messages, scripts, social content all in a global store.
+
+**Good**: Each tab fetches and manages its own data.
+
+### 2. Creating Too Many Abstractions
+
+Don't build "utility" files, "helper" folders, or "service" layers that don't exist yet. Write the simplest thing that works.
+
+**Bad**: Creating a `useFetch` hook, an `apiClient` class, and a `queryProvider` before writing actual API calls.
+
+**Good**: Direct function calls in components. Refactor when repetition appears.
+
+### 3. Premature Optimization
+
+Don't add loading skeletons, error boundaries, or optimistic updates until you actually need them.
+
+**Bad**: Building a complex caching system for API responses.
+
+**Good**: Fetch on mount, show simple "Loading..." text if needed.
+
+### 4. Overengineering Folder Structure
+
+Don't create folders like `hooks/`, `utils/`, `services/`, `contexts/` unless they contain actual files. A flat structure is better than an empty deep structure.
+
+**Bad**: `src/hooks/useCustom.ts`, `src/utils/format.ts` with one function each.
+
+**Good**: Everything in `components/` or directly in `api/`.
+
+### 5. Introducing Redux or Complex Libraries
+
+Redux is overkill for a 4-tab app. TanStack Query is overkill for 4 endpoints. Keep dependencies at zero.
+
+**Bad**: Installing @reduxjs/toolkit, react-router-dom, axios, tailwindcss.
+
+**Good**: Just React. That's enough.
+
+---
+
+## Implementation Notes
+
+### API Routes (from Backend)
+
+| Frontend Need | Backend Endpoint |
+|---------------|-------------------|
+| List projects | GET `/api/projects` |
+| Create project | POST `/api/projects` |
+| Get messages | GET `/api/projects/{id}/messages` |
+| Send message | POST `/api/projects/{id}/messages` |
+| Get script | GET `/api/projects/{id}/script` |
+| Update script | PUT `/api/projects/{id}/script` |
+| Get social | GET `/api/projects/{id}/social-media` |
+| Update social | PUT `/api/projects/{id}/social-media` |
+
+### Quick Start
+
+```bash
+# Create Vite project
+npm create vite@latest frontend -- --template react-ts
+
+# Start dev server
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend runs on port 5173 by default. Configure Vite to proxy API requests to the backend at port 8000.
+
+---
+
+## Summary
+
+This frontend is intentionally simple. Two global state values. Four API files. Six components. Four CSS files. A beginner can understand the entire codebase in an afternoon.
+
+The architecture prioritizes:
+- **Speed**: Build it in 3 days
+- **Maintainability**: No complex patterns to learn
+- **Learning**: Vanilla React, TypeScript, CSS—transferable skills
+
+Ship fast, learn fast, iterate fast.
