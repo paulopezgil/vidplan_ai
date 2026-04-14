@@ -7,7 +7,8 @@ from backend.core.database import get_db
 from backend.schemas.script import ScriptUpdate, ScriptResponse
 from backend.services import crud as crud_service
 
-router = APIRouter(prefix="/api/projects", tags=["scripts"])
+
+router = APIRouter(prefix="/projects", tags=["scripts"])
 
 
 @router.get("/{project_id}/script", response_model=Optional[ScriptResponse])

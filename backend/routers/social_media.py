@@ -6,7 +6,8 @@ from backend.core.database import get_db
 from backend.schemas.social_media import SocialMediaUpdate, SocialMediaResponse
 from backend.services import crud as crud_service
 
-router = APIRouter(prefix="/api/projects", tags=["social-media"])
+
+router = APIRouter(prefix="/projects", tags=["social-media"])
 
 
 @router.get("/{project_id}/social-media", response_model=Optional[SocialMediaResponse])

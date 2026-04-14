@@ -10,7 +10,7 @@ from backend.services import crud as crud_service
 from backend.exceptions import NotFoundError
 
 
-router = APIRouter(prefix="/api/projects", tags=["projects"])
+router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 @router.get("", response_model=List[ProjectListResponse])

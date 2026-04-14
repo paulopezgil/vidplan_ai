@@ -9,8 +9,8 @@ from backend.schemas.message import MessageInput, MessageResponse
 from backend.services import crud as crud_service
 from backend.services import conversation as conversation_service
 
-router = APIRouter(prefix="/api/projects", tags=["messages"])
 
+router = APIRouter(prefix="/projects", tags=["messages"])
 
 
 @router.get("/{project_id}/messages", response_model=List[MessageResponse])
